@@ -1,0 +1,119 @@
+---
+title: "Lab 6"
+author: "Your Name Here"
+date: ""
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+### Learning objectives
+
+> In today's Lab you will gain practice with the following concepts from today's class:
+
+>- Using the **`t.test`** and **`wilcox.test`** commands to run 2-sample t-tests
+- Interpreting the results of statistical significance tests
+- Using **`qqnorm`** and **`qqline`** to construct normal quantile-quantile plots, and using them to assess whether data appear to be normally distributed
+- Using **`fisher.test`** on 2x2 tables and interpreting the results
+
+We'll begin by loading all the packages we might need.
+```{r}
+library(MASS)
+library(plyr)
+library(reshape)  # You may need to install this one first!
+library(ggplot2)
+```
+
+### Testing means between two groups
+
+Here is a command that generates density plots of `MPG.highway` from the Cars93 data.  Separate densities are constructed for US and non-US vehicles.  
+
+```{r}
+qplot(data = Cars93, x = MPG.highway, 
+      fill = Origin, geom = "density", alpha = I(0.5))
+```
+
+**(a)** Using the Cars93 data and the `t.test()` function, run a t-test to see if average `MPG.highway` is different between US and non-US vehicles.  *Interpret the results*
+
+Try doing this both using the formula style input and the `x`, `y` style input.
+
+```{r}
+# Edit me
+```
+
+**(b)** What is the confidence interval for the difference?  Interpret this confidence interval.  
+
+```{r}
+# Edit me
+```
+
+**(c)** Repeat part (a) using the `wilcox.test()` function.
+
+```{r}
+# Edit me
+```
+
+**(d)** Are your results for (a) and (c) very different?  
+
+
+### Is the data normal?
+
+**(a)** Modify the density plot code provided in problem 1 to produce a plot with better axis labels.  Also add a title.
+
+```{r}
+# Edit me
+```
+
+**(b)** Does the data look to be normally distributed?  If not, describe why.
+
+**(c)** Construct qqplots of `MPG.highway`, one plot for each `Origin` category.  Overlay a line on each plot using with `qqline()` function.
+
+```{r}
+# Edit me
+```
+
+**(d)** Does the data look to be normally distributed?  If not, describe why.
+
+### Testing 2 x 2 tables
+
+Doll and Hill's 1950 article studying the association between smoking and lung cancer contains one of the most important 2 x 2 tables in history.  
+
+Here's their data:
+
+```{r}
+smoking <- as.table(rbind(c(688, 650), c(21, 59)))
+dimnames(smoking) <- list(has.smoked = c("yes", "no"),
+                    lung.cancer = c("yes","no"))
+smoking
+```
+
+**(a)** Use `fisher.test()` to test if there's an association between smoking and lung cancer.
+
+```{r}
+# Edit me
+```
+
+**(b)** What is the odds ratio?  Interpret this quantity.
+
+```{r}
+# Edit me
+```
+
+**(c)** Are your findings statistically significant?  
+
+```{r}
+# Edit me
+```
+
+**(d)** Write an inline code chunk similar to the one you saw in class where you interpret the results of this hypothesis test.
+
+
+### Plotting error bars
+
+This exercise may take some time if you choose to pursue it.
+
+Using Doll and Hill's smoking data and, construct a bar graph with accompanying error bars showing the proportion of study participants with lung cancer. 
+
+To succeed in this exercise, you'll have to follow along careful with the Tutorial notes.  Please read the section titled "Plotting the table values with confidence".
+
+

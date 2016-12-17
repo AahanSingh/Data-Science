@@ -1,0 +1,134 @@
+---
+title: "Lab 4"
+author: "Your Name Here"
+date: ""
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+### Learning objectives
+
+> In today's Lab you will gain practice with the following concepts from today's class:
+
+>- Using the **`tapply`** and **`aggregate`** commands to produce simple tabular summaries, and interpreting the results
+- Using the **`by`** command to produce tables showing correlations between variables
+- Constructing scatterplots with legends using base graphics
+- Drawing connections between tabular and graphical summaries
+
+
+### Problems
+
+We'll begin by doing all the same data processing as in lecture.
+```{r}
+library(MASS)
+
+# Assign more descriptive variable names
+colnames(birthwt) <- c("birthwt.below.2500", "mother.age", "mother.weight", 
+    "race", "mother.smokes", "previous.prem.labor", "hypertension", "uterine.irr", 
+    "physician.visits", "birthwt.grams")
+
+# Assign more descriptive factor levels and convert variables to factors as needed
+library(plyr)
+birthwt <- transform(birthwt, 
+            race = as.factor(mapvalues(race, c(1, 2, 3), 
+                              c("white","black", "other"))),
+            mother.smokes = as.factor(mapvalues(mother.smokes, 
+                              c(0,1), c("no", "yes"))),
+            hypertension = as.factor(mapvalues(hypertension, 
+                              c(0,1), c("no", "yes"))),
+            uterine.irr = as.factor(mapvalues(uterine.irr, 
+                              c(0,1), c("no", "yes"))),
+            birthwt.below.2500 = as.factor(mapvalues(birthwt.below.2500,
+                              c(0,1), c("no", "yes")))
+            )
+```
+
+#### 1. aggregate() vs tapply()
+
+One of the advantages of aggregate() is that it makes it easier to view summary tables when grouping on more than two factors.  
+
+**(a)** Use the `tapply()` function to calculate mean `birthwt.grams` grouped by race, mother's smoking status, and hypertension.
+
+```{r}
+# Edit me
+```
+
+**One of the cells in the `tapply` output is equal to `NA`.  Explain why.**
+
+> Replace this text with your solution.
+
+**(b)** Repeat part (a), this time using the `aggregate()` function.
+
+```{r}
+# Edit me
+```
+
+**Do you see an `NA` result?  Explain.**
+
+> Replace this text with your solution.
+
+<br>
+
+#### 2. by() practice
+
+In today's lecture we used the `by()` function to calculate the correlation between mother's age and birth weight broken down by mother's smoking status.  Here's the command that was used:
+
+```{r}
+by(data = birthwt[c("birthwt.grams", "mother.age")], 
+   INDICES = birthwt["mother.smokes"], 
+   FUN = function(x) {cor(x[,1], x[,2])})
+```
+
+**(a)** Use the `by()` function to calculate the correlation between mother's age and birth weight broken down by race.
+
+```{r}
+# Edit me
+```
+
+**(b)** Does the correlation appear to vary by race? Explain.   
+
+> Replace this text with your solution.
+
+<br>
+
+#### 3. Scatterplot practice
+
+In class we made a pretty nice scatterplot using the following command.
+
+```{r, fig.align='center', eval=FALSE}
+# Make sure that the color-blind palette is defined
+cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+points.base <- c(16, 17) # 16: circle, 17: triangle
+cols.base <- cbPalette[2:3] # blue and orange points
+point.symbols <- points.base[birthwt$mother.smokes] 
+point.cols <- cols.base[birthwt$mother.smokes]
+with(birthwt, plot(mother.age, birthwt.grams, 
+                   main="Birth Weight by Mother's Age", 
+                   xlab="Mother's Age (Years)", 
+                   ylab="Birth Weight (Grams)",
+                   col=point.cols,
+                   pch=point.symbols))
+legend("bottomright", c("Nonsmoker","Smoker"), col=cols.base, pch=points.base)
+```
+
+**(a)** Try to create a similar plot, but instead of using different colors and symbols based on the value of `mother.smokes`, do so based on the value of `race`.  
+
+```{r, fig.height=6, fig.width=6, fig.align='center'}
+# Edit me
+```
+
+**(b)** Use the `abline` command to add a horizontal line to the plot at `birthwt.grams = 2500`. 
+
+```{r, fig.height=6, fig.width=6, fig.align='center'}
+# Edit me
+```
+
+**(c)** What does the 2500g horizontal line represent?    In practical terms, what does it mean when a point lies below this line?  
+
+> Replace this text with your solution.
+ 
+**(d)**  There is one isolated point in the top-right corner of the plot.  Describe the race, age and baby birthweight of this point.  Could this isolated point have affected the correlation calculation in Question 2 in any way?  
+
+> Replace this text with your solution.

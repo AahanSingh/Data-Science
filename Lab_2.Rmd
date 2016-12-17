@@ -1,0 +1,89 @@
+---
+title: "Lab 3"
+author: "Your Name Here"
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+For the first two problems we'll use the Cars93 data set from the MASS library.
+
+```{r}
+library(MASS)
+```
+
+#### 1. Manipulating data frames
+
+There are certain situations where we want to transform right-skewed data before analysing it.  Taking the log of right-skewed data often helps to make it more normally distributed.
+
+Here are histograms of the `MPG.highway` and `MPG.city` variables.
+
+```{r, fig.width = 12}
+par(mfrow = c(1, 2))   # Display both plots in the same Figure, in 2 columns
+hist(Cars93$MPG.city, col = "lightgray")
+hist(Cars93$MPG.highway, col = "lightgray")
+```
+
+**(a)** Do the city and highway gas-mileage figures appear to have right-skewed distributions?
+
+> Your answer: 
+
+**(b)** Use the `transform()` and `log()` functions to create a new data frame called `Cars93.log` that has `MPG.highway` and `MPG.city` replaced with `log(MPG.highway)` and `log(MPG.city)`.
+
+```{r}
+# Edit me
+```
+
+**(c)** Run the histogram commands again, this time using your new `Cars93.log` dataset instead of `Cars93`.  
+
+```{r, fig.width = 12}
+# Edit me
+```
+
+**(d)** Do the distributions appear less skewed than before?
+
+> Your answer here:
+
+#### 2. Table function
+
+**(a)** Use the `table()` function to tabulate the data by DriveTrain and Origin.  
+
+```{r}
+# Edit me
+```
+
+**(b)** Does it looks like foreign car manufacturers had different Drivetrain preferences compared to US manufacturers?
+
+> Your answer: 
+
+#### 3. Functions, lists, and if-else practice
+
+**(a)** Write a function called `isPassingGrade` whose input `x` is a number, and which returns `FALSE` if `x` is lower than 50 and `TRUE` otherwise.
+
+```{r}
+# Edit me
+```
+
+**(b)** Write a function called `sendMessage` whose input `x` is a number, and which prints `Congratulations` if `isPassingGrade(x)` is `TRUE` and prints `Oh no!` if `isPassingGrade(x)` is `FALSE`.
+
+```{r}
+# Edit me
+```
+
+**(c)** Write a function called `gradeSummary` whose input `x` is a number.  Your function will return a list with two elements, named `letter.grade` and `passed`.  The letter grade will be `"A"` if `x` is at least `90`.  The letter grade will be `"B"` if `x` is between `80` and `90`.  The letter grade will be `"F"` if `x` is lower than `"80"`.  If the student's letter grade is an A or B, `passed` should be TRUE; `passed` should be FALSE otherwise.
+
+```{r}
+# Edit me
+```
+
+To check if your function works, try the following cases:
+
+`x = 91` should return 
+```{r, echo = FALSE}
+list(letter.grade = "A", passed = TRUE)
+```
+
+`x = 62` should return 
+```{r, echo = FALSE}
+list(letter.grade = "F", passed = FALSE)
+```

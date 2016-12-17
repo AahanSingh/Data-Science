@@ -1,0 +1,91 @@
+---
+title: "Lab 3"
+author: "Your Name Here"
+output: html_document
+---
+
+##### Remember to change the `author: ` field on this Rmd file to your own name.
+
+### Learning objectives
+
+> In today's Lab you will gain practice with the following concepts from today's class:
+
+>- Using **loops** to iterate through a data set
+- Alternatives to loops such as the **`apply`** and **`rowMeans`** commands
+- Using the **`tapply`** command to produce simple tabular summaries, and interpreting the results
+- Evaluating expressions with the help of the **`with`** command as a way of simplifying syntax
+
+## Problems
+
+```{r}
+library(MASS)
+```
+
+### 1. Loop practice
+
+**(a)** Write a function called `calculateRowMeans` that uses a **for loop** to calculate the row means of a matrix `x`.
+
+```{r}
+# Edit me
+```
+
+**(b)** Try out your function on the random matrix `fake.data` defined below.
+
+```{r}
+set.seed(12345) # Set seed of random number generator
+fake.data <- matrix(runif(800), nrow=25)
+```
+
+**(c)** Use the `apply()` function to calculate the row means of the matrix `fake.data`
+
+```{r}
+# Edit me
+```
+
+**(d)** Compare this to the output of the `rowMeans()` function to check that your calculation is correct.
+
+```{r}
+# Edit me
+```
+
+### 2. tapply() practice
+
+**(a)** Use `tapply()` on the Cars93 data set to create a table showing the average `Turn.circle` of cars, broken down by vehicle `Type` and `DriveTrain`
+
+```{r}
+# Edit me
+```
+
+**(b)** Are there any `NA` values in your table?  If so, explain why `NA` values are appearing.
+
+> Replace this text with your solution.
+
+**(c)** Having a car with a small turn radius makes city driving much easier.  Should city drivers opt for smaller vehicles or larger vehicles?
+
+> Replace this text with your solution.
+
+**(d)** Does the vehicle's `DriveTrain` appear to have an impact on turn radius?  
+
+> Replace this text with your solution.
+
+### 3. with() practice
+
+Below is a code chunk that produces box plots of Horsepower against vehicle Type.  
+
+```{r, fig.align='center', fig.width=7, fig.height=5}
+boxplot(Cars93$Horsepower ~ Cars93$Type)
+```
+
+**(a)** Use the `with()` function to produce the same plot with different syntax.
+
+```{r, fig.align='center', fig.width=7, fig.height=5}
+# Edit me
+```
+
+**(b)**  Which types of cars tend to be the most powerful (have the highest horsepower)?
+
+> Replace this text with your solution.
+
+**(c)** Which types of cars offer the widest range of power?
+
+> Replace this text with your solution.

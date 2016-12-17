@@ -1,0 +1,15 @@
+#Q2(a)
+vector1 <- runif(100,10,20)
+#Q2(b)
+l <- list()
+for(i in 1:100){
+  l[[i]] <- runif(vector1[i])
+}
+#Q2(c)
+ln <- vector()
+for(i in 1:100)
+  ln[i]<- length(l[[i]])
+#Q2(d)
+sapply(l, function(x) length(x))
+#Q2(e)
+lapply(l, function(x) length(x))

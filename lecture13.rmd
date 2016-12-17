@@ -1,0 +1,412 @@
+---
+title: Lecture 13 - Classification 
+author: 94-842
+date: October 11, 2016
+output: 
+  html_document:
+    toc: true
+    toc_depth: 5
+---
+
+```{r}
+library(ggplot2)
+```
+
+### Income data from Lecture 12
+
+
+Last class we fit a logistic regression model to the Income data.  Our goal was to predict whether an individual's income is **under 50k** or **over 50k**.
+
+```{r, cache=TRUE}
+# Import data file
+income <- read.csv("http://www.andrew.cmu.edu/user/achoulde/94842/data/income_data.txt", header=FALSE)
+
+# Give variables names
+colnames(income) <- c("age", "workclass", "fnlwgt", "education", "education.years", "marital.status", "occupation", "relationship", "race", "sex", "capital.gain", "capital.loss", "hours.per.week", "native.country", "income.bracket")
+
+# Create a 0-1 indicator of whether income is higher than 50K
+income <- transform(income, high.income = as.numeric(income.bracket == ">50K"))
+
+# Subset to just the US data
+income.us <- subset(income, 
+                    subset = native.country == "United-States")
+
+# If x is a factor, this function sets the first level to be the most frequent category
+# If x is not a factor, this function returns x unchanged
+relevelToMostFrequent <- function(x) {
+  if (is.factor(x)) {
+    # Determine most frequent category
+    most.freq.level <- levels(x)[which.max(table(x))]
+    # Relevel to set most frequent category as the baseline
+    relevel(x, ref = most.freq.level)
+  } else {
+    x
+  }
+}
+# Re-level the data
+income.us.releveled <- as.data.frame(lapply(income.us, FUN = relevelToMostFrequent))
+
+# Fit logistic regression model
+income.glm <- glm(high.income ~ age + workclass + education.years + marital.status*sex + race + hours.per.week, 
+                  family = binomial(), 
+                  data = income.us.releveled)
+```
+
+### Using regression as a predictive tool
+
+Thus far we have been thinking of regression mostly as a tool for understanding the association between a set of variables and an outcome variable of interest.  A lot of the problems that come up in analytics work do have this flavour.  However, there's another type of problem you'll often encounter that regression can also be used for:  prediction and classification.
+
+#### Classification with logistic regression
+
+Suppose that instead of asking about factors that are associated with whether an individual earns over 50k, all we care about is having a good guess at whether individuals earn over 50k.  i.e., We no longer care about the significance or interpretation of model coefficients, and only care about how good we are at guessing >50k or not.
+
+Let's look at what our model returns for `fitted` values (predicted values on the data we used to build the model).
+
+```{r}
+summary(income.glm$fitted.values)
+```
+
+```{r}
+qplot(x = income.glm$fitted.values, fill = income.us.releveled$income.bracket) +
+  scale_fill_discrete(name = "Income bracket") +
+  xlab("Estimated probability of having income >50K")
+```
+
+```{r}
+df.out <- data.frame(income.bracket = income.us.releveled$income.bracket,
+                     prob.est = income.glm$fitted.values)
+# Different view of the same information
+qplot(data = df.out, x = prob.est, fill = income.bracket,
+      facets = . ~ income.bracket) +
+  guides(fill = FALSE) +
+  xlab("Estimated probability of having income >50K")
+```
+
+
+A logistic regression produces **probability estimates**.  These are estimated probabilities that the outcome is equal to 1.  Here, it's the estimated probability that the individual's income is >=50k. This is actually a conditional probability:  it's the probability that a person's income is >=50k given their covariates (conditional on the values of the variables in the model).
+
+What do we do with these probabilities?  The common convention is simply to round.  i.e., if we estimate that 
+
+<center>
+**P**(income $\ge$ 50k | individual's covariates) > 0.5, 
+</center>
+
+ then we **classify** the individual to the high income category.  
+
+
+Let's see how well our model from the previous section performs.  To do so, we can form what's called a **confusion matrix**, which tabulates our predictions against the observed values.
+
+```{r}
+confusion.mat <- table(round(income.glm$fitted.values), income.glm$y,
+                       dnn = c("predicted", "observed"))
+confusion.mat
+```
+
+The **misclassification rate** of our classifier is the % of the time that we guessed wrong.  It's the sum of the anti-diagonal elements, divided by the total number of observations.  In this case, our mislcassification rate is:
+
+```{r}
+misclass.rate <- (confusion.mat[1, 2] + confusion.mat[2, 1]) / sum(confusion.mat)
+misclass.rate
+```
+
+This says that our misclassification rate is `r round(100 * misclass.rate, 1)`%.
+
+Is this a good error rate?  That depends.  If just 1% of our sample had incomes over 50k, then an error rate of `r round(100 * misclass.rate, 1)`% would be awful.  We'd be better off just guessing that everyone earns <50k (this would result in a misclassification rate of 1%).  On the other hand, if 40% of our sample had incomes over 50k, then an error rate of `r round(100 * misclass.rate, 1)`% wouldn't be bad at all.  It would be saying that our model is useful in helping us classify individuals between high earners and low earners.
+
+Here's how the actual data breaks down.
+
+```{r}
+income.tbl <- table(income.glm$y)
+income.tbl
+
+income.tbl[2]  / sum(income.tbl)
+```
+
+OK.  So we see that `r round(100 * income.tbl[2]  / sum(income.tbl), 1)`% of people in our data earn over 50k.  Thus if we simply guessed that everyone is a low earner, we'd incur an overall misclassification rate of `r round(100 * income.tbl[2]  / sum(income.tbl), 1)`%.  This is a fair bit higher than the misclassification rate of our logistic model, so our model is certainly helping us make better guesses.
+
+
+### Logistic regression: Bank marketing example
+
+#### Classification: training data vs testing data
+
+At the start of this lecture we looked at how logistic regression can be used as a classification method.  Our approach there was to fit a model that we thought included "relevant" covariates and then to start evaluating the model based on how well it did on correctly classifying the observed data.  We said that the model is a "good classifier" if it results in a low misclassification rate.
+
+Our analysis there left something to be desired.  In order to trust a classifier, we need to know that it performs well on **unseen data**.  That is, I can think of having **training data** on which I build my model, and then a separate set of **testing data** on which I evaluate the performance of my model.  
+
+This partition of data as **training** and **testing** will be used throughout our discussion of "data mining" and "machine learning".
+
+#### Case study: Bank Marketing Data Set 
+
+```{r}
+# Read in bank marketing data
+marketing <- read.table("http://www.andrew.cmu.edu/user/achoulde/94842/data/bank-full.csv", 
+                        header = TRUE, sep = ";")
+```
+
+This data comes from a Portuguese banking institution that ran a marketing campaign to try to get clients to subscribe to a "term deposit" (a CD).  A CD is an account that you can put money into that guarantees fixed interest rate over a certain period of time (e.g., 2 years).  The catch is that if you try to withdraw your money before the term ends, you will typically incur heavy penalties or "early withdrawal fees".
+
+Suppose that you're hired as a decision support analyst at this bank and your first job is to use the data to figure out who the marketing team should contact for their next CD subscription marketing campaign.  i.e., they pull up new spreadsheet that contains the contact information, age, job, marital status, education level, default history, mortgage status, and personal loan status for tens of thousands of clients, and they want you to tell them who they should contact.  
+
+#### Step 1: Split data into training and testing
+
+The first thing we're going to do is split off a chunk of our data for a test set.  We won't see this data until we've fit our model.  We'll use it only for gauging the performance of our classifier.  We'll hold out 20% of our data for the test set.
+
+```{r}
+set.seed(12345)
+# Randomly select 20% of the data to be held out for model validation
+test.indexes <- sample(1:nrow(marketing), 
+                       round(0.2 * nrow(marketing)))
+train.indexes <- setdiff(1:nrow(marketing), test.indexes)
+
+# Just pull the covariates available to marketers (cols 1:8) and the outcome (col 17)
+marketing.train <- marketing[train.indexes, c(1:8, 17)]
+marketing.test <- marketing[test.indexes, c(1:8, 17)]
+
+# Here are the dimensions of our resulting data
+dim(marketing.train)
+dim(marketing.test)
+```
+
+#### Step 2: Fit a logistic regression model
+
+First, let's see what our outcome variable looks like.
+
+```{r}
+table(marketing.train$y)
+```
+
+Turns out it's hard to get customers to open up a CD account (most of those who the marketers contacted didn't open one).  Let's see if we can use data about the clients that the bank has onhand to predict whether an individual is likely to say yes or no.
+
+```{r}
+marketing.glm <- glm(y ~ ., data = marketing.train, family = binomial())
+```
+
+That's it.  Now we have a model.
+
+#### Step 3: Assess model on the training data
+
+How well does it do on the training data?  Here's a confusion matrix to help us sort that out.  We'll do the same thing as usual.  The logistic regression outputs a probability of "yes", so we'll classify to "yes" if the estimated probability is at least 50%.  In the table below, 0 = "no" and 1 = "yes".
+
+```{r}
+confusion.train <- table(round(marketing.glm$fitted.values), marketing.glm$y, dnn = c("predicted", "observed"))
+confusion.train
+```
+
+Wow.  That's not useful at all.  Of the `r nrow(marketing.train)` individuals in our data, just `r sum(confusion.train[2,])` of them were predicted as saying "yes", compared to the `r sum(marketing.train$y == "yes")` that actually said "yes" in the data.  
+
+Why is this happening?  Let's look at the histogram of fitted values.
+
+```{r}
+qplot(x = marketing.glm$fitted.values, binwidth = 0.025, xlim = c(0,1),
+      xlab = "Estimated probability of 'yes'",
+      fill = as.factor(marketing.glm$y)) +
+      scale_fill_discrete(name = "Said yes?") +
+  geom_vline(xintercept = 0.5)
+```
+
+As you can see, just about all of the fitted values are below 0.5.  
+
+Where do we go from here? If we want to get more candidates for our marketers, we're going to have to lower our bar for guessing yes.  What if we lower this bar to 0.3?  i.e., We'll tell the marketers to call anyone whose estimated probability of saying "yes" is at least 30%.  How well will we do then?
+
+```{r}
+qplot(x = marketing.glm$fitted.values, binwidth = 0.025, xlim = c(0,1),
+      xlab = "Estimated probability of 'yes'",
+      fill = as.factor(marketing.glm$y)) +
+      scale_fill_discrete(name = "Said yes?") +
+  geom_vline(xintercept = 0.3)
+```
+
+```{r}
+confusion.30 <- table(as.numeric(marketing.glm$fitted.values >= 0.3), marketing.glm$y, dnn = c("predicted", "observed"))
+confusion.30
+```
+
+For another comparison, let's also look at decreasing this threshold to 0.25.
+
+```{r}
+confusion.25 <- table(as.numeric(marketing.glm$fitted.values >= 0.25), marketing.glm$y, dnn = c("predicted", "observed"))
+confusion.25
+```
+
+OK.  Now we're getting somewhere.  But is it somewhere good?
+
+Let's look at the numbers more closely. 
+
+##### The 30% cutoff
+
+```{r}
+confusion.30 
+
+correct.30 <- round(100 * confusion.30[2,2] / sum(confusion.30[2,]), 1)
+
+# Overall % that said yes in the training data
+yes.percent.train <- round(100 * table(marketing.train$y)["yes"] / nrow(marketing.train), 1)
+```
+
+When we use the 30% probability cutoff, we classify a total of `r sum(confusion.30[2,])` customers to the "yes" group.  Of these, `r confusion.30[2,2]` actually said "yes" and opened up a CD.  That is, `r correct.30`% of the people we would have chosen to call would have said yes.
+
+How does this stack up to the baseline?  Well, `r yes.percent.train`% of all the people contacted (in our training data) said "yes".  Thus, if the marketers had selected `r sum(confusion.30[2,])` customers at random and just called those, they'd have a success rate of `r yes.percent.train`%.  If they called the `r sum(confusion.30[2,])` customers that our model said had a 30% chance or higher of saying yes, they would have had a success rate of `r correct.30`%.  That's quite an improvement!
+
+##### The 25% cutoff
+
+If we repeated the previous analysis now with a 25% cutoff on the estimated success probability, here's what we would've wound up with:
+
+```{r}
+confusion.25
+correct.25 <- round(100 * confusion.25[2,2] / sum(confusion.25[2,]), 1)
+```
+
+We would have given the marketers `r sum(confusion.25[2,])` customers to call, and `r correct.25`% of these would have said "yes" and opened up a CD. Compare this to the `r yes.percent.train`% success rate that the marketers would have had if they selected the `r sum(confusion.25[2,])` customers at random.  Again, we see a tremendous improvement.  
+
+#### Step 4: Assess model on the testing data
+
+Now that we have some confidence in our model, let's see how well we do on the testing data.  The first step is to use the `predict` function to get estimated success probabilities for the new data.
+
+```{r}
+# Note: type = "response" returns predictions on the probability scale
+# The default (type = "link") would return predictions on the log-odds scale
+test.fitted <- predict(marketing.glm, marketing.test, type = "response")
+
+# Histogram of estimated probabilities on test data
+qplot(x = test.fitted, binwidth = 0.025, xlim = c(0,1),
+      xlab = "Estimated probability of 'yes' (test data)",
+      fill = as.factor(marketing.test$y)) +
+      scale_fill_discrete(name = "Said yes?") +
+  geom_vline(xintercept = 0.25)
+```
+
+Once again we see that very few of the estimated probabilities exceed 0.5, so we're going to have to pick a different cutoff.  
+
+##### The 25% cutoff
+
+First, what's different about the test data?  The main difference is that none of these customers appeared in our training data.  Our estimation procedure didn't get to see these data when fitting the model, so when we get estimated probabilities here we're predicting on **unseen data**.  If we do well on suggesting which test data customers to call, then we can have confidence that we'll do well in our next CD marketing campagin (assuming that the economy and customer banking behavior hasn't changed all that much since our last campaign).
+
+Let's suppose that we had told the marketers to contact all the customers whose estimated probability of "yes" according to our model is at least 25%.  How well would we have done?
+
+```{r}
+confusion.test.25 <- table(as.numeric(test.fitted >= 0.25), marketing.test$y, dnn = c("predicted", "observed"))
+
+confusion.test.25
+
+correct.test.25 <- round(100 * confusion.test.25[2,2] / sum(confusion.test.25[2,]), 1)
+
+# Overall % that said yes in the test data
+yes.percent.test <- round(100 * table(marketing.test$y)["yes"] / nrow(marketing.test), 1)
+yes.percent.test
+```
+
+Well, of the `r sum(confusion.test.25[2,])` customers we would have told the marketers to call, `r correct.test.25`% of them said "yes" and opened a CD.  If the marketers had selected `r sum(confusion.test.25[2,])` at random, just `r yes.percent.test`% of them would have said "yes".  That's quite a big improvement!
+
+#### Precision and Recall 
+
+In the previous examples we considered fixed cutoffs (thresholds) for the probability estimates (0.5, 0.3, 0.25).  Another useful way to think about how well a classifier performs is to trace out curves of its performance as the threshold varies continuously from 0 to 1.  In this section we'll look at two measures in particular: Precision and Recall.  These terms are typically defined within the context of information retrieval problems (you have documents and are trying to assess whether they are relevant to your query), we'll refer to the customers we're trying to classify as "documents".  
+
+
+> Precision (at threshold $\alpha$):  The precision of a classifier is the proportion of documents *correctly* classified as relevant out of the total number of documents classified as relevant.  
+
+In the marketing example, the precision is the proportion of customers classified as "yes" who actually opened a CD out of the total number of customers classified as "yes".  (These are the correct percentages that we were talking about before.)
+
+> Recall (at threshold $\alpha$):  The recall of a classifier is the proportion of documents correctly classified as relevant out of the total number of relevant documents.
+
+In marketing example, this is:  (# customers correctly classified to "yes") / (total # of customers who said "yes")
+
+For concreteness, here's our confusion matrix from the test data, with $\alpha = 0.25$:
+
+```{r}
+confusion.test.25
+```
+
+The precision is:
+
+```{r}
+# Precision
+precision.25 <- confusion.test.25["1","yes"] / (confusion.test.25["1", "no"] + confusion.test.25["1", "yes"])
+
+precision.25
+```
+
+The recall is:
+
+```{r}
+recall.25 <- confusion.test.25["1","yes"] / (confusion.test.25["0", "yes"] + confusion.test.25["1", "yes"])
+
+recall.25
+```
+
+This says:  At threshold $0.25$, our classifier successfully identified `r round(100 * recall.25, 1)`% of all customers who opened CD's as a result of the marketing calls.  Among the customers who are predicted as being likely to open a CD, `r round(100 * precision.25, 1)`% of them did.
+
+##### Precision and Recall curves
+
+We can visualize how the precision and recall of our classifier vary by computing them at every value of the threshold alpha.  He's an example of doing so with the help of the `ROCR` package.
+
+```{r}
+library(ROCR)
+
+# Construct predictions object
+# command: prediction(probability.estimates, observed.values)
+pred <- prediction(test.fitted, marketing.test$y)
+
+# Calculate performance curves
+# command: performance(prediction.obj, measure, ...)
+# measure = "prec" gives precision
+perf.precision <- performance(pred, measure = "prec")
+
+# measure = "rec" gives recall
+perf.recall <- performance(pred, measure = "rec")
+
+par(mfrow = c(1, 2))
+
+plot(perf.precision, xlim = c(0,1))
+plot(perf.recall, xlim = c(0,1))
+```
+
+Note that recall is a decreasing function of the cutoff (if you look at the definition, you'll see that this has to be the case).  Precision, on the other hand, doesn't have to be monotonic in the cutoff.  
+
+These curves are often combined into a single Precision-Recall curve that plots Precision on the y-axis and Recall on the x-axis.  This allows the user to select a desirable trade-off between precision and recall.
+
+```{r}
+par(mfrow = c(1,1))
+perf.prec.rec <- performance(pred, measure = "prec", x.measure ="rec")
+plot(perf.prec.rec)
+```
+
+Thus you can look at this plot and decide that you want to target a recall of 0.4 (40%), which would get you a precision that's not too much lower than what we had when the recall was just `r round(100 * recall.25, 1)`% at the $\alpha = 0.25$ probability cutoff.
+
+How do we figure out what cutoff gives us a recall of 0.4?  Here's one approach
+
+```{r}
+# This turns out to be an S4 object, so we need to use @ instead of $ to
+# reference its elements
+str(perf.prec.rec)
+
+# Figure out index corresponding to recall of 0.4
+cutoff.index <- max(which(perf.prec.rec@x.values[[1]] <= 0.4))
+cutoff.index 
+
+# Recall at this index
+perf.prec.rec@x.values[[1]][cutoff.index]
+
+# Precision at 40% recall
+perf.prec.rec@y.values[[1]][cutoff.index]
+
+# Probability cutoff to get 40% recall
+perf.prec.rec@alpha.values[[1]][cutoff.index]
+```
+
+Putting this all together:
+
+> To get 40% recall (to reach 40% of all customers who would open a CD when called), we should contact all individuals whose estimated probability of saying yes is at least `r round(perf.prec.rec@alpha.values[[1]][cutoff.index], 3)`. We expect `r round(100 * perf.prec.rec@y.values[[1]][cutoff.index], 1)`% of calls that we make to be successful.  In the test data, this suggestion would reduce the number of calls from `r nrow(marketing.test)` to `r sum(test.fitted > perf.prec.rec@alpha.values[[1]][cutoff.index])`.  This would greatly cut down on marketing costs.
+
+If you think carefully, you can modify this analysis to pick the cutoff to best trade-off between the cost of making an additional call and the benefit of getting an additional customer to open a CD.  
+
+#### How do the estimated coefficients and significance factor in?
+
+Well... we never actually look at them.  We use them to calculate probabilities on the test data, but we never looked at them directly.  Here are the coefficients:
+
+```{r, results = 'asis'}
+library(knitr)
+kable(coef(summary(marketing.glm)), digits = c(3, 4, 3, 4))
+```
+
+We see that essentially every covariate is statistically significant, and some of the coefficients are quite large.  However, none of this directly translates into whether the model provides us with useful predictions.  To answer that question, we need to assess the model in a completely different way.  
+
