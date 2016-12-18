@@ -1,0 +1,17 @@
+#Q2(a)
+e <- c(5.8,15,21.5,27.5,33.5,39.5,46,51.5)
+n <- c(98,51,34,35,32,23,12,4)
+d <- c(0,3,9,13,19,15,16,7)
+DataSet <- data.frame(ExposureTime =e, Normal = n, Diseased = d)
+plot(DataSet$Diseased~DataSet$ExposureTime,type='p')
+#As exposure time increases the risk of disease increase
+#Q2(c)
+l <- lm(Diseased~ExposureTime, DataSet)
+abline(l)
+#Yes the model does fit the data reasonably well
+#Q2(d)
+new <- data.frame(ExposureTime = DataSet$ExposureTime * 2)
+p <- predict(l, new)
+plot(p~new$ExposureTime,type='b',col='red',pch=16)
+abline(l,col='blue')
+points(DataSet$Diseased~DataSet$ExposureTime,type='p')
